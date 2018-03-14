@@ -1,0 +1,92 @@
+On the BRM Box
+---------------
+TS triggred through html page:
+Logs for the BRM batch job will go to 
+/opt/brm/7.5/pin485/rel/var/job_scheduler/
+
+When TS is triggered either from cron or when run in force mode, log file is located:
+/opt/brm/7.5/pin485/rel/shawutils/job_scheduler/
+brm_job_scheduler.sh is also located here
+
+/opt/brm/7.5/pin485/rel/shawutils/job_scheduler/lock_file/
+daily and monthly lock files (runto -> on sysdate, data format)
+
+To check if process is running :
+ps -ef | grep brm_job_scheduler.sh
+kill this job (kill -9 <process id>)
+
+custom menu is located here:
+/opt/brm/7.5/pin485/bin/test_tools_1
+-
+run in force mode
+job will be hanging -? For this check for DB locks; option 3.
+specific error in a BRM job -? Contact brm team; balaji or Avinash verma
+invoiceProcessor – it integrates with doc1 system; for password “yes”
+
+------------
+
+cannot access stub message in log = devops error
+email ato-deployment mail group - colin
+
+To copy keys on tstcoretttl001 to those two OE boxes and BRM:
+cd /opt/testing_team/timeshifter
+./fooooo ./environment/matrix-070-TS0.sh
+
+login to tstcoretttl001
+sudo su - proctst_brm
+/home/proctst_brm/Timeshifter_environments
+cat matrix-085-TS85.sh to show id/pwd for the servers
+ssh -x id@environment to login to BRM
+
+-------------
+pwd to show current directory
+ls -lrt to show timestamp
+printenv
+
+issue #1
+--------
+The error in question comes from the "brm_control.sh" file:
+
+…\GIT\TTTest\TimeShifter\brm_control.sh:
+   30    ssh $HPUX_SSH_USERNAME@$HPUX_SSH_SERVER "mkdir -p $BRM_SUB_DIR"
+   31    if [ $? -ne 0 ] ; then
+   32:       echo "[Timeshifter]["$(date '+%Y%m%d-%H%M')"]: Problem making subdir on remote BRM server"
+   33        exit 1
+   34    fi
+
+
+In this case, the SSH keys are not set up to allow for SSH'ng onto the BRM server without a password:
+[proctst_brm@tstcoretttl001 environment]$ cat matrix-089-TS89.sh | grep HPUX | egrep 'SERVER|USER'
+HPUX_SSH_SERVER=dtscorebrml089.matrix.sjrb.ad
+HPUX_SSH_USERNAME=pin489
+
+And this shows the SSH keys are not set up properly:
+[proctst_brm@tstcoretttl001 environment]$ ssh -x pin489@dtscorebrml089.matrix.sjrb.ad
+pin489@dtscorebrml089.matrix.sjrb.ad's password: ^C
+
+I have copied proctst_brm@tstcoretttl001:~/.ssh/id_rsa.pub to pin489@dtscorebrml089:~/.ssh/authorized_keys
+
+And now it works:
+[proctst_brm@tstcoretttl001 ~]$ cat colins_ssh_check | grep -v "#ssh"
+ssh pin489@dtscorebrml089.matrix.sjrb.ad 'echo -n $(host $(hostname)) " " ; date'
+ssh timeshift@dtscoreoeml089.matrix.sjrb.ad 'echo -n $(host $(hostname)) " " ; date'
+ssh -x timeshift@dtscoreorcl089.matrix.sjrb.ad 'echo -n $(host $(hostname)) " " ; date' 
+
+[proctst_brm@tstcoretttl001 ~]$ ./colins_ssh_check
+dtscorebrml089.matrix.sjrb.ad has address 10.15.185.207  Tue Mar 13 10:15:56 MDT 2018
+dtscoreoeml089.matrix.sjrb.ad has address 10.15.185.218  Tue Mar 13 10:16:03 MDT 2018
+dtscoreorcl089.matrix.sjrb.ad has address 10.15.184.217  Tue Mar 13 10:14:56 MDT 2018
+
+issue #2
+--------
+problem copying oedb.sh and oedb_wrapper.sh timeshift@dtscoreorcl070.matrix.sjrb.ad:/tmp/timeshift/timeshift
+
+ran command, ./fooooo ./environment/matrix-070-TS0.sh, still problem, reassign ticket to devops
+
+issue #3
+---------
+log shows stuck on brm_job_scheduler.sh
+email dba email group, TNO - Database Administrators 
+dba removed db lock
+timeshift forced to complete, pick up where it left off and finish the timeshift (option 6, 5 on menu)
+set oe/om to match brm date web link
